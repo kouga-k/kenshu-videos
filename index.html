@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -155,7 +155,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC9zXV4wozwYh0T1CtA6P-02CA4Rr9EFOM",
@@ -172,10 +172,11 @@
   async function loadVideos() {
     const content = document.getElementById('content');
     try {
-      const q = query(collection(db,'videos'), where('status','==','published'), orderBy('createdAt','desc'));
+      const q = query(collection(db,'videos'), where('status','==','published'));
       const snapshot = await getDocs(q);
       const videos = [];
       snapshot.forEach(doc => videos.push({ id: doc.id, ...doc.data() }));
+      videos.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       document.getElementById('videoCount').textContent = videos.length;
 
       if (videos.length === 0) {
