@@ -1,0 +1,440 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 — 研修動画ライブラリ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1557b0;
+      --primary-light: #e8f0fe;
+      --success: #34a853;
+      --success-light: #e6f4ea;
+      --warning: #f9ab00;
+      --warning-light: #fef9e7;
+      --danger: #d93025;
+      --danger-light: #fce8e6;
+      --text: #202124;
+      --text-sub: #5f6368;
+      --border: #e0e0e0;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    body { font-family: 'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* LOGIN */
+    .login-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    }
+    .login-card {
+      background: white; border-radius: 20px; padding: 40px 36px;
+      width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .login-icon { font-size: 48px; margin-bottom: 16px; }
+    .login-card h2 { font-size: 20px; margin-bottom: 6px; }
+    .login-card p { font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
+    .input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; transition: border 0.2s; }
+    .input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .btn-full { width: 100%; padding: 13px; border-radius: 10px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; margin-top: 14px; transition: all 0.2s; }
+    .btn-primary-full { background: var(--primary); color: white; }
+    .btn-primary-full:hover { background: var(--primary-dark); }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; }
+
+    /* MAIN */
+    .main { display: none; }
+    header {
+      background: var(--primary); color: white;
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    header h1 { font-size: 17px; font-weight: 600; }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .logout-btn:hover { background: rgba(255,255,255,0.25); }
+    .view-link { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 13px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 28px 16px 60px; }
+
+    /* ADD FORM */
+    .add-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 28px; overflow: hidden; }
+    .card-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h2 { font-size: 15px; font-weight: 600; }
+    .toggle-btn { background: none; border: none; color: var(--primary); font-size: 13px; cursor: pointer; font-weight: 600; }
+    .add-form { padding: 20px; display: none; }
+    .add-form.open { display: block; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; }
+    .form-input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; }
+    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .form-actions { display: flex; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: white; color: var(--text-sub); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #2d9247; }
+    .btn-danger { background: var(--danger-light); color: var(--danger); }
+    .btn-danger:hover { background: #fad4d2; }
+    .btn-sm { padding: 7px 12px; font-size: 12px; }
+
+    /* VIDEO LIST */
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+    .video-list { display: flex; flex-direction: column; gap: 14px; }
+    .video-item { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+    .video-item-header { padding: 16px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .video-item-header:hover { background: var(--bg); }
+    .video-item-title { font-size: 14px; font-weight: 600; flex: 1; }
+    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .status-published { background: var(--success-light); color: var(--success); }
+    .status-draft { background: var(--warning-light); color: var(--warning); }
+    .status-review { background: var(--primary-light); color: var(--primary); }
+    .chevron { font-size: 12px; color: var(--text-sub); transition: transform 0.2s; }
+    .chevron.open { transform: rotate(180deg); }
+
+    .video-item-body { display: none; padding: 0 18px 18px; border-top: 1px solid var(--border); }
+    .video-item-body.open { display: block; }
+
+    .edit-section { margin-top: 16px; }
+    .edit-label { font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .edit-label .badge-easy { background: var(--success-light); color: var(--success); padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .edit-textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; line-height: 1.7; resize: vertical; min-height: 140px; outline: none; transition: border 0.2s; font-family: inherit; }
+    .edit-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .edit-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+    .status-select { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #323232; color: white; padding: 12px 24px; border-radius: 8px;
+      font-size: 14px; transition: transform 0.3s; z-index: 999; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .gemini-key-wrap { background: var(--warning-light); border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+    .gemini-key-wrap input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; }
+
+    .loading-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-sub); }
+    .spinner-sm { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-list { text-align: center; padding: 48px; color: var(--text-sub); }
+
+    @media(max-width:600px) {
+      .form-actions, .edit-actions { flex-direction: column; }
+      .btn { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <h2>管理者ログイン</h2>
+    <p>研修動画ライブラリ 管理画面</p>
+    <input class="input" type="password" id="pwInput" placeholder="パスワードを入力" />
+    <button class="btn-full btn-primary-full" onclick="login()">ログイン</button>
+    <div class="login-error" id="loginError">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainWrap">
+  <header>
+    <div class="header-left">
+      <span style="font-size:22px">🎓</span>
+      <h1>管理画面</h1>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="view-link">視聴ページ →</a>
+      <button class="logout-btn" onclick="logout()">ログアウト</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Gemini Key -->
+    <div class="gemini-key-wrap">
+      ⚡ Gemini APIキー：
+      <input type="password" id="geminiKey" placeholder="AIza..." />
+      <button class="btn btn-outline btn-sm" onclick="saveGeminiKey()">保存</button>
+    </div>
+
+    <!-- Add Video -->
+    <div class="add-card">
+      <div class="card-header">
+        <h2>➕ 動画を追加</h2>
+        <button class="toggle-btn" onclick="toggleAddForm()">フォームを開く</button>
+      </div>
+      <div class="add-form" id="addForm">
+        <div class="form-group">
+          <label class="form-label">タイトル</label>
+          <input class="form-input" id="newTitle" type="text" placeholder="例：医療チームの機能と役割" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">GoogleドライブのURL</label>
+          <input class="form-input" id="newUrl" type="text" placeholder="https://drive.google.com/file/d/..." />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="addVideo()" id="addBtn">動画を追加</button>
+          <button class="btn btn-outline" onclick="toggleAddForm()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video List -->
+    <div class="section-title">動画一覧</div>
+    <div class="video-list" id="videoList">
+      <div class="empty-list">読み込み中...</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC9zXV4wozwYh0T1CtA6P-02CA4Rr9EFOM",
+    authDomain: "kenshu-videos-app.firebaseapp.com",
+    projectId: "kenshu-videos-app",
+    storageBucket: "kenshu-videos-app.firebasestorage.app",
+    messagingSenderId: "598974487316",
+    appId: "1:598974487316:web:eef152f165495be79a0001"
+  };
+
+  const ADMIN_PASSWORD = "kenshu2026";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ---------- AUTH ----------
+  window.login = function() {
+    const pw = document.getElementById('pwInput').value;
+    if (pw === ADMIN_PASSWORD) {
+      document.getElementById('loginWrap').style.display = 'none';
+      document.getElementById('mainWrap').style.display = 'block';
+      const saved = sessionStorage.getItem('geminiKey');
+      if (saved) document.getElementById('geminiKey').value = saved;
+      loadVideos();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+    }
+  };
+  document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.login(); });
+
+  window.logout = function() {
+    document.getElementById('mainWrap').style.display = 'none';
+    document.getElementById('loginWrap').style.display = 'flex';
+    document.getElementById('pwInput').value = '';
+  };
+
+  window.saveGeminiKey = function() {
+    const key = document.getElementById('geminiKey').value.trim();
+    if (key) { sessionStorage.setItem('geminiKey', key); showToast('APIキーを保存しました'); }
+  };
+
+  // ---------- ADD FORM ----------
+  window.toggleAddForm = function() {
+    const f = document.getElementById('addForm');
+    f.classList.toggle('open');
+    document.querySelector('.toggle-btn').textContent = f.classList.contains('open') ? '閉じる' : 'フォームを開く';
+  };
+
+  function extractFileId(url) {
+    const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return m ? m[1] : null;
+  }
+
+  window.addVideo = async function() {
+    const title = document.getElementById('newTitle').value.trim();
+    const url = document.getElementById('newUrl').value.trim();
+    if (!title || !url) { showToast('タイトルとURLを入力してください'); return; }
+    const fileId = extractFileId(url);
+    if (!fileId) { showToast('有効なGoogleドライブURLを入力してください'); return; }
+
+    const btn = document.getElementById('addBtn');
+    btn.disabled = true; btn.textContent = '追加中...';
+    try {
+      await addDoc(collection(db, 'videos'), {
+        title, driveFileId: fileId, status: 'draft',
+        textPlain: '', textEasy: '', createdAt: serverTimestamp()
+      });
+      document.getElementById('newTitle').value = '';
+      document.getElementById('newUrl').value = '';
+      toggleAddForm();
+      showToast('動画を追加しました');
+      loadVideos();
+    } catch(e) { showToast('エラー: ' + e.message); }
+    btn.disabled = false; btn.textContent = '動画を追加';
+  };
+
+  // ---------- LOAD ----------
+  async function loadVideos() {
+    const list = document.getElementById('videoList');
+    list.innerHTML = '<div class="empty-list">読み込み中...</div>';
+    try {
+      const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      const videos = [];
+      snap.forEach(d => videos.push({ id: d.id, ...d.data() }));
+      if (videos.length === 0) {
+        list.innerHTML = '<div class="empty-list">動画がありません。上のフォームから追加してください。</div>';
+        return;
+      }
+      list.innerHTML = '';
+      videos.forEach(v => list.appendChild(createVideoItem(v)));
+    } catch(e) { list.innerHTML = '<div class="empty-list">読み込みエラー: ' + e.message + '</div>'; }
+  }
+
+  function createVideoItem(v) {
+    const item = document.createElement('div');
+    item.className = 'video-item';
+    item.id = 'item-' + v.id;
+    const statusMap = { published: ['公開中', 'status-published'], draft: ['下書き', 'status-draft'], review: ['確認中', 'status-review'] };
+    const [statusLabel, statusClass] = statusMap[v.status] || ['不明', 'status-draft'];
+    item.innerHTML = `
+      <div class="video-item-header" onclick="toggleItem('${v.id}')">
+        <div class="video-item-title">${v.title}</div>
+        <span class="status-badge ${statusClass}">${statusLabel}</span>
+        <span class="chevron" id="chevron-${v.id}">▼</span>
+      </div>
+      <div class="video-item-body" id="body-${v.id}">
+        <div class="edit-section">
+          <div class="edit-label">📄 原文テキスト</div>
+          <textarea class="edit-textarea" id="plain-${v.id}">${v.textPlain || ''}</textarea>
+          <div class="edit-actions">
+            <button class="btn btn-primary btn-sm" onclick="transcribe('${v.id}')">🤖 Geminiで文字起こし</button>
+            <button class="btn btn-outline btn-sm" onclick="savePlain('${v.id}')">💾 保存</button>
+          </div>
+        </div>
+        <div class="edit-section">
+          <div class="edit-label">✨ やさしい日本語 <span class="badge-easy">Chrome翻訳対応</span></div>
+          <textarea class="edit-textarea" id="easy-${v.id}">${v.textEasy || ''}</textarea>
+          <div class="edit-actions">
+            <button class="btn btn-success btn-sm" onclick="generateEasy('${v.id}')">✨ Geminiで生成</button>
+            <button class="btn btn-outline btn-sm" onclick="saveEasy('${v.id}')">💾 保存</button>
+          </div>
+        </div>
+        <div class="edit-section" style="display:flex;align-items:center;gap:12px;padding-top:8px;border-top:1px solid var(--border);margin-top:8px;">
+          <select class="status-select" id="status-${v.id}">
+            <option value="draft" ${v.status==='draft'?'selected':''}>下書き</option>
+            <option value="review" ${v.status==='review'?'selected':''}>確認中</option>
+            <option value="published" ${v.status==='published'?'selected':''}>公開中</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="saveStatus('${v.id}')">ステータス更新</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteVideo('${v.id}', '${v.title}')">🗑 削除</button>
+        </div>
+      </div>`;
+    return item;
+  }
+
+  window.toggleItem = function(id) {
+    document.getElementById('body-' + id).classList.toggle('open');
+    document.getElementById('chevron-' + id).classList.toggle('open');
+  };
+
+  // ---------- GEMINI ----------
+  async function callGemini(prompt) {
+    const key = sessionStorage.getItem('geminiKey') || document.getElementById('geminiKey').value.trim();
+    if (!key) { showToast('Gemini APIキーを入力してください'); return null; }
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    if (!res.ok) { showToast('Gemini APIエラー: ' + res.status); return null; }
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  }
+
+  window.transcribe = async function(id) {
+    showToast('現在はテキストを直接入力してください（音声文字起こし機能は準備中）');
+  };
+
+  window.generateEasy = async function(id) {
+    const plain = document.getElementById('plain-' + id).value.trim();
+    if (!plain) { showToast('先に原文テキストを入力してください'); return; }
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '生成中...';
+
+    const prompt = `以下の医療・介護研修テキストを「やさしい日本語」に書き直してください。
+
+ルール：
+- 専門用語（褥瘡、看護補助者、FIMなど）はそのまま残す
+- 難しい表現をわかりやすい言葉に言い換える
+- 一文を短くする
+- 主語をはっきりさせる
+- 受け身表現を減らす
+
+原文：
+${plain}
+
+やさしい日本語版のみを出力してください（説明や前置きは不要）：`;
+
+    const result = await callGemini(prompt);
+    if (result) {
+      document.getElementById('easy-' + id).value = result;
+      showToast('やさしい日本語を生成しました。内容を確認して保存してください。');
+    }
+    btn.disabled = false; btn.textContent = '✨ Geminiで生成';
+  };
+
+  window.savePlain = async function(id) {
+    const text = document.getElementById('plain-' + id).value;
+    try {
+      await updateDoc(doc(db, 'videos', id), { textPlain: text });
+      showToast('原文テキストを保存しました');
+    } catch(e) { showToast('保存エラー: ' + e.message); }
+  };
+
+  window.saveEasy = async function(id) {
+    const text = document.getElementById('easy-' + id).value;
+    try {
+      await updateDoc(doc(db, 'videos', id), { textEasy: text });
+      showToast('やさしい日本語を保存しました');
+    } catch(e) { showToast('保存エラー: ' + e.message); }
+  };
+
+  window.saveStatus = async function(id) {
+    const status = document.getElementById('status-' + id).value;
+    try {
+      await updateDoc(doc(db, 'videos', id), { status });
+      showToast('ステータスを更新しました');
+      loadVideos();
+    } catch(e) { showToast('更新エラー: ' + e.message); }
+  };
+
+  window.deleteVideo = async function(id, title) {
+    if (!confirm(`「${title}」を削除しますか？`)) return;
+    try {
+      await deleteDoc(doc(db, 'videos', id));
+      showToast('削除しました');
+      loadVideos();
+    } catch(e) { showToast('削除エラー: ' + e.message); }
+  };
+
+  // ---------- TOAST ----------
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+  window.showToast = showToast;
+</script>
+</body>
+</html>
