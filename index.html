@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>医療チームの機能と役割</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background: #075e54;
+      color: white;
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    header p {
+      font-size: 13px;
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .video-wrap {
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      position: relative;
+      padding-top: 56.25%;
+    }
+
+    .video-wrap iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+    }
+
+    .transcript-box {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .transcript-box h2 {
+      font-size: 15px;
+      color: #075e54;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8f5e9;
+    }
+
+    .transcript-text {
+      font-size: 15px;
+      line-height: 1.9;
+      color: #333;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: #075e54;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .copy-btn:active {
+      background: #054d45;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>研修動画</h1>
+  <p>医療チームの機能と役割</p>
+</header>
+
+<div class="container">
+
+  <div class="video-wrap">
+    <iframe
+      src="https://drive.google.com/file/d/16wr44EAadChNsPCn3Fb0NsoYG_gTtPmE/preview"
+      allow="autoplay"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <div class="transcript-box">
+    <h2>📄 テキスト（文字起こし）</h2>
+    <div class="transcript-text" id="transcript">医療チームの機能と役割
+
+日本赤十字社医療センター 渡辺美香です。
+
+到達目標は医療チームの機能と役割が分かるです。
+
+病院では数多くの職種が働いています。患者さんや家族もチームの一員としてその時々で必要な職種が共同しながら医療サービスを提供しています。
+
+そして多職種連携が促進される中、看護師の役割拡大が求められており、看護職員と看護補助者との役割分担や共同が推進されています。
+
+次に病院の組織について見てみましょう。この組織はあくまでも一例です。規模によって部門や名称等は様々ですので参考にしてください。
+
+病院には組織のトップである病院長の下、診療部・診療支援部・看護部・事務部・医療連携部などの部門があります。
+
+診療部には各診療科の医師が所属しており、診療支援部には薬剤部・中央検査部・栄養部・リハビリテーション部などが含まれています。
+
+それぞれ専門職として資格を持つ人とそれを支える補助者がいます。看護部には看護師・看護補助者が、そして事務部には事務職員等が働いています。
+
+では、看護チームの一員としての看護補助者の役割と責任を確認していきます。
+
+保健師・助産師・看護師法のもと、看護師は診療の補助と療養上の世話を行います。
+
+そこで看護補助者は看護が提供される場において、看護チームの一員として看護師の指示のもと、看護の専門的な判断を要しない看護補助業務を行う役割を担っています。
+
+そして看護補助者には自らの役割や責任の範囲を明確に理解し、看護師の指示を受け、安全に看護補助業務を実施する責任があります。
+
+看護補助者と言っても施設によってその呼び方は様々です。皆様の病院ではどのように呼ばれているでしょうか？
+
+スライドのように看護補助者の呼称は様々ですが、声をかける時は職種の呼称ではなく名前で呼ぶことが大変重要です。
+
+チームの一員として相手を尊重して共同していきましょう。
+
+【まとめ】
+医療チームの機能と役割は、患者を中心に様々な職種がチームとして協力し、専門性の高い医療サービスを提供することです。
+
+組織における看護補助者の位置づけと役割を理解し、責任を持って業務を実施する必要があります。</div>
+    <button class="copy-btn" onclick="copyText()">📋 テキストをコピー</button>
+  </div>
+
+</div>
+
+<footer>
+  CareVoice 研修動画ページ
+</footer>
+
+<script>
+  function copyText() {
+    const text = document.getElementById('transcript').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ コピーしました';
+      setTimeout(() => { btn.textContent = '📋 テキストをコピー'; }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
