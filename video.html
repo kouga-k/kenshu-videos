@@ -105,6 +105,15 @@
       border: none; background: none; font-size: 13px;
       font-weight: 600; color: var(--text); cursor: pointer; outline: none;
     }
+    .voice-bar {
+      padding: 10px 20px 0; display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-sub);
+    }
+    .voice-bar select {
+      flex: 1; padding: 7px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; color: var(--text);
+      background: white; outline: none; cursor: pointer; max-width: 360px;
+    }
 
     .loading-state { padding: 48px; text-align: center; color: var(--text-sub); }
     .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
@@ -170,6 +179,12 @@
           <iframe src="https://drive.google.com/file/d/${v.driveFileId}/preview" allow="autoplay" allowfullscreen></iframe>
         </div>
         <div class="text-card">
+          <div class="voice-bar">
+            🗣 声：
+            <select id="voiceSelect" onchange="updateRate()">
+              <option value="">読み込み中...</option>
+            </select>
+          </div>
           <div class="tab-bar">
             <button class="tab active" data-tab="plain">📄 原文テキスト</button>
             ${hasEasy ? '<button class="tab" data-tab="easy">✨ やさしい日本語</button>' : ''}
@@ -249,6 +264,47 @@
     });
   };
 
+  // ---------- 声リスト読み込み ----------
+  function loadVoices() {
+    const sel = document.getElementById('voiceSelect');
+    if (!sel) return;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return;
+
+    sel.innerHTML = '';
+    // 日本語音声を上に、その他を下に
+    const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
+    const otherVoices = voices.filter(v => !v.lang.startsWith('ja'));
+
+    if (jaVoices.length > 0) {
+      const grp = document.createElement('optgroup');
+      grp.label = '日本語';
+      jaVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name + (v.localService ? '' : ' ☁');
+        // Nanamiなど自然な音声をデフォルト選択
+        if (v.name.includes('Nanami') || v.name.includes('Kenji')) opt.selected = true;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    }
+    if (otherVoices.length > 0) {
+      const grp = document.createElement('optgroup');
+      grp.label = 'その他の言語';
+      otherVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `[${v.lang}] ${v.name}`;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    }
+  }
+
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+
   // ---------- 読み上げ機能 ----------
   let currentUtter = null;
   let currentBtn = null;
@@ -293,7 +349,17 @@
     utter.rate = rate;
     utter.pitch = 1;
     utter.volume = 1;
-    utter.lang = document.documentElement.lang || 'ja';
+
+    // 選択した声をセット
+    const voiceName = document.getElementById('voiceSelect')?.value;
+    const voices = window.speechSynthesis.getVoices();
+    const selectedVoice = voices.find(v => v.name === voiceName);
+    if (selectedVoice) {
+      utter.voice = selectedVoice;
+      utter.lang = selectedVoice.lang;
+    } else {
+      utter.lang = document.documentElement.lang || 'ja';
+    }
 
     utter.onboundary = (e) => {
       // 現在の文字位置から読んでいる文を特定
