@@ -320,7 +320,17 @@
       return;
     }
     console.log('speakText called:', type);
-    stopSpeak();
+    // 再生中の場合のみキャンセル（不要なcancelで"interrupted"エラーが出るのを防ぐ）
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
+    if (currentBtn) {
+      currentBtn.classList.remove('speaking');
+      currentBtn.textContent = '🔊 読み上げ';
+      currentBtn = null;
+    }
+    currentUtter = null;
+    currentType = null;
 
     const el = document.getElementById('text-' + type);
     const text = el?.innerText || '';
