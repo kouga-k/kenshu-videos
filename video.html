@@ -240,6 +240,8 @@
       });
 
       window._videoData = v;
+      // コンテンツ生成後に声リストを読み込む
+      setTimeout(loadVoices, 100);
     } catch(e) {
       content.innerHTML = `<div class="not-found"><div class="icon">⚠️</div><p>読み込みエラーが発生しました。</p></div>`;
     }
