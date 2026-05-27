@@ -290,7 +290,13 @@
     const langOrder = [pageLang, 'ja', ...Object.keys(groups).filter(l => l !== pageLang && l !== 'ja')];
     const langNames = { ja: '日本語', en: '英語', id: 'インドネシア語', vi: 'ベトナム語', my: 'ミャンマー語', ko: '韓国語', zh: '中国語' };
 
-    let firstOpt = null;
+    // 良質な音声の優先名
+    const preferred = ['Nanami', 'Kenji', 'Andika', 'An ', 'Heami'];
+
+    let bestMatch = null; // ページ言語に合う最良の声
+    let firstInPageLang = null; // ページ言語の最初の声
+    let firstOpt = null; // リストの最初の声
+
     langOrder.forEach(lang => {
       const group = groups[lang];
       if (!group) return;
@@ -301,16 +307,33 @@
         opt.value = v.name;
         opt.textContent = v.name;
         if (!firstOpt) firstOpt = opt;
-        // 自然な音声を優先選択
-        if (v.name.includes('Nanami') || v.name.includes('Kenji') || v.name.includes('Andika') || v.name.includes('An Online')) opt.selected = true;
+        // ページ言語に合う声を優先記録
+        if (lang === pageLang) {
+          if (!firstInPageLang) firstInPageLang = opt;
+          if (!bestMatch && preferred.some(p => v.name.includes(p))) bestMatch = opt;
+        }
         grp.appendChild(opt);
       });
       sel.appendChild(grp);
     });
+
+    // ページ言語の良質な声 > ページ言語の最初の声 > リスト先頭
+    const toSelect = bestMatch || firstInPageLang || firstOpt;
+    if (toSelect) toSelect.selected = true;
   }
 
   window.speechSynthesis.onvoiceschanged = loadVoices;
   loadVoices();
+
+  // Chrome翻訳でページ言語が変わったら声リストも更新
+  let lastLang = document.documentElement.lang;
+  setInterval(() => {
+    const cur = document.documentElement.lang;
+    if (cur !== lastLang) {
+      lastLang = cur;
+      loadVoices();
+    }
+  }, 1500);
 
   // ---------- 読み上げ機能 ----------
   let currentUtter = null;
