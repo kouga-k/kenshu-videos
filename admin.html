@@ -164,11 +164,12 @@
 
   <div class="container">
 
-    <!-- Gemini Key -->
-    <div class="gemini-key-wrap">
-      ⚡ Gemini APIキー：
-      <input type="password" id="geminiKey" placeholder="AIza..." />
-      <button class="btn btn-outline btn-sm" onclick="saveGeminiKey()">保存</button>
+    <!-- Workflow Help -->
+    <div class="gemini-key-wrap" style="background:var(--primary-light);border-color:#bfdbfe;">
+      💡 文字起こし・やさしい日本語は<strong>Claudeチャット</strong>で生成します。
+      各動画の編集パネルにある「📋 プロンプトをコピー」ボタンを押して、
+      <a href="https://claude.ai/new" target="_blank" style="color:var(--primary);font-weight:600;">Claudeを開く →</a>
+      に貼り付けてください。
     </div>
 
     <!-- Add Video -->
@@ -243,9 +244,42 @@
     document.getElementById('pwInput').value = '';
   };
 
-  window.saveGeminiKey = function() {
-    const key = document.getElementById('geminiKey').value.trim();
-    if (key) { sessionStorage.setItem('geminiKey', key); showToast('APIキーを保存しました'); }
+  // ---------- 用語辞書（誤認識補正） ----------
+  const TERM_DICTIONARY = {
+    '引内来': '院内',
+    '解除': '介助',
+    '廃尿': '排尿',
+    '廃便': '排便',
+    '西洋': '整容',
+    '景観栄養': '経管栄養',
+    '義脂': '義歯',
+    '事女具': '自助具',
+    '原点': '減点',
+    '正式': '清拭',
+    '遭具': '装具',
+    '廃業管理': '排尿管理',
+    '干潮': '浣腸',
+    '干長': '浣腸',
+    '長期画少': '長期臥床'
+    // ※「異常→移乗」「上位→上衣」「回→下衣」は文脈依存のため自動置換から除外
+  };
+
+  function applyTermDictionary(text) {
+    let result = text;
+    let count = 0;
+    for (const [wrong, correct] of Object.entries(TERM_DICTIONARY)) {
+      const before = result;
+      result = result.split(wrong).join(correct);
+      if (before !== result) count++;
+    }
+    return { text: result, count };
+  }
+
+  window.applyDictionary = function(id) {
+    const ta = document.getElementById('plain-' + id);
+    const { text, count } = applyTermDictionary(ta.value);
+    ta.value = text;
+    showToast(count > 0 ? `${count}種類の用語を補正しました。確認して保存してください` : '補正対象の用語は見つかりませんでした');
   };
 
   // ---------- ADD FORM ----------
@@ -316,17 +350,24 @@
       <div class="video-item-body" id="body-${v.id}">
         <div class="edit-section">
           <div class="edit-label">📄 原文テキスト</div>
-          <textarea class="edit-textarea" id="plain-${v.id}">${v.textPlain || ''}</textarea>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">
+            👉 Googleドライブの文字起こしを貼り付け → 「補正プロンプトをコピー」→ Claudeで修正版を取得 → ここに貼り直し → 保存
+          </div>
+          <textarea class="edit-textarea" id="plain-${v.id}" placeholder="動画の文字起こしテキストを貼り付けてください">${v.textPlain || ''}</textarea>
           <div class="edit-actions">
-            <button class="btn btn-primary btn-sm" onclick="transcribe('${v.id}')">🤖 Geminiで文字起こし</button>
+            <button class="btn btn-primary btn-sm" onclick="copyCorrectionPrompt('${v.id}')">📋 補正プロンプトをコピー</button>
+            <button class="btn btn-outline btn-sm" onclick="applyDictionary('${v.id}')">🔧 辞書で自動補正</button>
             <button class="btn btn-outline btn-sm" onclick="savePlain('${v.id}')">💾 保存</button>
           </div>
         </div>
         <div class="edit-section">
           <div class="edit-label">✨ やさしい日本語 <span class="badge-easy">Chrome翻訳対応</span></div>
-          <textarea class="edit-textarea" id="easy-${v.id}">${v.textEasy || ''}</textarea>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">
+            👉 原文を確定 → 「やさしい日本語プロンプトをコピー」→ Claudeで生成 → ここに貼り付け → 保存
+          </div>
+          <textarea class="edit-textarea" id="easy-${v.id}" placeholder="やさしい日本語版を貼り付けてください">${v.textEasy || ''}</textarea>
           <div class="edit-actions">
-            <button class="btn btn-success btn-sm" onclick="generateEasy('${v.id}')">✨ Geminiで生成</button>
+            <button class="btn btn-success btn-sm" onclick="copyEasyPrompt('${v.id}')">📋 やさしい日本語プロンプトをコピー</button>
             <button class="btn btn-outline btn-sm" onclick="saveEasy('${v.id}')">💾 保存</button>
           </div>
         </div>
@@ -348,55 +389,85 @@
     document.getElementById('chevron-' + id).classList.toggle('open');
   };
 
-  // ---------- GEMINI ----------
-  async function callGemini(prompt) {
-    const key = sessionStorage.getItem('geminiKey') || document.getElementById('geminiKey').value.trim();
-    if (!key) { showToast('Gemini APIキーを入力してください'); return null; }
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const msg = data?.error?.message || res.status;
-      showToast('Gemini APIエラー: ' + msg);
-      console.error('Gemini error:', data);
-      return null;
+  // ---------- プロンプトコピー ----------
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // フォールバック
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
     }
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
   }
 
-  window.transcribe = async function(id) {
-    showToast('現在はテキストを直接入力してください（音声文字起こし機能は準備中）');
+  window.copyCorrectionPrompt = async function(id) {
+    const plain = document.getElementById('plain-' + id).value.trim();
+    if (!plain) { showToast('先に文字起こしテキストを貼り付けてください'); return; }
+
+    const prompt = `以下は介護・医療研修動画の文字起こしです。音声認識による誤認識を修正してください。
+
+【修正方針】
+・医療介護の専門用語を文脈から正しく直す
+・FIM（機能的自立度評価）関連用語に注意
+・介助／移乗／整容／清拭／排泄／経管栄養／浣腸／装具／自助具などの専門用語
+・読点・句読点を整え、自然な日本語に
+・話者の言い直しや「えー」「あのー」は削除して読みやすくする
+・タイムスタンプがあれば削除して本文だけにする
+・原文の意味は変えない
+
+【よくある誤認識の例】
+引内来→院内、解除→介助、廃尿→排尿、西洋→整容、景観栄養→経管栄養、
+義脂→義歯、事女具→自助具、原点→減点、正式→清拭、遭具→装具、
+干潮/干長→浣腸、長期画少→長期臥床、異常→移乗（文脈による）
+
+【出力】
+修正後の本文のみ。説明や前置きは不要。
+
+【文字起こし】
+${plain}`;
+
+    const ok = await copyToClipboard(prompt);
+    showToast(ok ? '📋 補正プロンプトをコピーしました。Claudeに貼り付けてください' : 'コピーに失敗しました');
   };
 
-  window.generateEasy = async function(id) {
+  window.copyEasyPrompt = async function(id) {
     const plain = document.getElementById('plain-' + id).value.trim();
     if (!plain) { showToast('先に原文テキストを入力してください'); return; }
-    const btn = event.target;
-    btn.disabled = true; btn.textContent = '生成中...';
 
-    const prompt = `以下の医療・介護研修テキストを「やさしい日本語」に書き直してください。
+    const prompt = `以下の介護・医療研修テキストを「やさしい日本語」に書き直してください。
+これは日本で働く外国人スタッフが学習するためのものです。
 
-ルール：
-- 専門用語（褥瘡、看護補助者、FIMなど）はそのまま残す
-- 難しい表現をわかりやすい言葉に言い換える
-- 一文を短くする
-- 主語をはっきりさせる
-- 受け身表現を減らす
+【ルール】
+・専門用語（褥瘡、FIM、看護補助者、経管栄養など）はそのまま残す（覚えてもらうため）
+・難しい表現はひらがな・やさしい言葉に言い換える
+・一文を短くする（できれば40字以内）
+・主語をはっきりさせる
+・受け身表現を減らし、能動的に
+・敬語・婉曲表現は普通の言い方に
+・専門用語の直後に「（〜こと）」とカッコで補足してもよい
 
-原文：
-${plain}
+【例】
+原文：多職種連携を推進する中、看護師の役割拡大が求められており
+やさしい：いろいろな職種の人が一緒に働く中で、看護師がする仕事が増えています
 
-やさしい日本語版のみを出力してください（説明や前置きは不要）：`;
+原文：療養上の世話を行います
+やさしい：患者さんの日常生活を助けます
 
-    const result = await callGemini(prompt);
-    if (result) {
-      document.getElementById('easy-' + id).value = result;
-      showToast('やさしい日本語を生成しました。内容を確認して保存してください。');
-    }
-    btn.disabled = false; btn.textContent = '✨ Geminiで生成';
+【出力】
+やさしい日本語版の本文のみ。説明や前置きは不要。
+
+【原文】
+${plain}`;
+
+    const ok = await copyToClipboard(prompt);
+    showToast(ok ? '📋 やさしい日本語プロンプトをコピーしました。Claudeに貼り付けてください' : 'コピーに失敗しました');
   };
 
   window.savePlain = async function(id) {
