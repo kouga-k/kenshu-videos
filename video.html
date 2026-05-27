@@ -78,8 +78,6 @@
     }
 
     .action-bar { display: flex; gap: 10px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .sentence { border-radius: 4px; transition: background 0.2s; }
-    .sentence.reading { background: #fff176; padding: 2px 0; }
     .btn {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 10px 18px; border-radius: 8px; font-size: 14px;
@@ -273,35 +271,39 @@
     const voices = window.speechSynthesis.getVoices();
     if (voices.length === 0) return;
 
-    sel.innerHTML = '';
-    // 日本語音声を上に、その他を下に
-    const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
-    const otherVoices = voices.filter(v => !v.lang.startsWith('ja'));
+    // ページの現在の言語（Chrome翻訳後も反映）
+    const pageLang = document.documentElement.lang?.split('-')[0] || 'ja';
 
-    if (jaVoices.length > 0) {
+    sel.innerHTML = '';
+
+    // ①現在のページ言語の声、②日本語の声、③その他 の順で表示
+    const groups = {};
+    voices.forEach(v => {
+      const lang = v.lang.split('-')[0];
+      if (!groups[lang]) groups[lang] = [];
+      groups[lang].push(v);
+    });
+
+    const langOrder = [pageLang, 'ja', ...Object.keys(groups).filter(l => l !== pageLang && l !== 'ja')];
+    const langNames = { ja: '日本語', en: '英語', id: 'インドネシア語', vi: 'ベトナム語', my: 'ミャンマー語', ko: '韓国語', zh: '中国語' };
+
+    let firstOpt = null;
+    langOrder.forEach(lang => {
+      const group = groups[lang];
+      if (!group) return;
       const grp = document.createElement('optgroup');
-      grp.label = '日本語';
-      jaVoices.forEach(v => {
+      grp.label = langNames[lang] || lang.toUpperCase();
+      group.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.name;
         opt.textContent = v.name + (v.localService ? '' : ' ☁');
-        // Nanamiなど自然な音声をデフォルト選択
-        if (v.name.includes('Nanami') || v.name.includes('Kenji')) opt.selected = true;
+        if (!firstOpt) firstOpt = opt;
+        // 自然な音声を優先選択
+        if (v.name.includes('Nanami') || v.name.includes('Kenji') || v.name.includes('Andika') || v.name.includes('An Online')) opt.selected = true;
         grp.appendChild(opt);
       });
       sel.appendChild(grp);
-    }
-    if (otherVoices.length > 0) {
-      const grp = document.createElement('optgroup');
-      grp.label = 'その他の言語';
-      otherVoices.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = `[${v.lang}] ${v.name}`;
-        grp.appendChild(opt);
-      });
-      sel.appendChild(grp);
-    }
+    });
   }
 
   window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -311,19 +313,6 @@
   let currentUtter = null;
   let currentBtn = null;
   let currentType = null;
-
-  function escSpan(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function renderWithSpans(el, text) {
-    // 句点・感嘆符・疑問符・改行で文を分割
-    const sentences = text.split(/(?<=[。！？\n])/g).filter(s => s.length > 0);
-    el.innerHTML = sentences.map((s, i) =>
-      `<span class="sentence" id="sent-${i}">${escSpan(s)}</span>`
-    ).join('');
-    return sentences;
-  }
 
   window.speakText = function(type) {
     if (!('speechSynthesis' in window)) {
@@ -335,14 +324,6 @@
     const el = document.getElementById('text-' + type);
     const text = el?.innerText || '';
     if (!text.trim()) return;
-
-    // 文をspanで囲んでハイライト準備
-    const sentences = renderWithSpans(el, text);
-
-    // 各文の開始文字位置を記録
-    const charPos = [];
-    let pos = 0;
-    sentences.forEach(s => { charPos.push(pos); pos += s.length; });
 
     const btn = document.getElementById('speak-' + type);
     const rate = parseFloat(document.getElementById('rate-' + type)?.value || '1');
@@ -363,32 +344,16 @@
       utter.lang = document.documentElement.lang || 'ja';
     }
 
-    utter.onboundary = (e) => {
-      // 現在の文字位置から読んでいる文を特定
-      let idx = 0;
-      for (let i = charPos.length - 1; i >= 0; i--) {
-        if (e.charIndex >= charPos[i]) { idx = i; break; }
-      }
-      document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
-      const cur = document.getElementById('sent-' + idx);
-      if (cur) {
-        cur.classList.add('reading');
-        cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    };
-
     utter.onstart = () => {
       btn.classList.add('speaking');
       btn.textContent = '🔊 読み上げ中...';
     };
     utter.onend = () => {
-      document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
       btn.classList.remove('speaking');
       btn.textContent = '🔊 読み上げ';
       currentUtter = null; currentBtn = null; currentType = null;
     };
     utter.onerror = () => {
-      document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
       btn.classList.remove('speaking');
       btn.textContent = '🔊 読み上げ';
     };
@@ -401,7 +366,6 @@
 
   window.stopSpeak = function() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
     if (currentBtn) {
       currentBtn.classList.remove('speaking');
       currentBtn.textContent = '🔊 読み上げ';
