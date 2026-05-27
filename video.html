@@ -334,14 +334,23 @@
     utter.volume = 1;
 
     // 選択した声をセット
-    const voiceName = document.getElementById('voiceSelect')?.value;
     const voices = window.speechSynthesis.getVoices();
+    const voiceName = document.getElementById('voiceSelect')?.value;
     const selectedVoice = voices.find(v => v.name === voiceName);
     if (selectedVoice) {
       utter.voice = selectedVoice;
       utter.lang = selectedVoice.lang;
     } else {
-      utter.lang = document.documentElement.lang || 'ja';
+      // 声が未選択の場合、ページ言語に合う声を自動選択
+      const pageLang = document.documentElement.lang?.split('-')[0] || 'ja';
+      const autoVoice = voices.find(v => v.lang.startsWith(pageLang))
+                     || voices.find(v => v.lang.startsWith('ja'));
+      if (autoVoice) {
+        utter.voice = autoVoice;
+        utter.lang = autoVoice.lang;
+      } else {
+        utter.lang = pageLang;
+      }
     }
 
     utter.onstart = () => {
@@ -353,15 +362,18 @@
       btn.textContent = '🔊 読み上げ';
       currentUtter = null; currentBtn = null; currentType = null;
     };
-    utter.onerror = () => {
+    utter.onerror = (e) => {
       btn.classList.remove('speaking');
       btn.textContent = '🔊 読み上げ';
+      console.error('TTS error:', e);
     };
 
     currentUtter = utter;
     currentBtn = btn;
     currentType = type;
-    window.speechSynthesis.speak(utter);
+    // Chrome のバグ対策：少し待ってから再生
+    window.speechSynthesis.cancel();
+    setTimeout(() => window.speechSynthesis.speak(utter), 100);
   };
 
   window.stopSpeak = function() {
