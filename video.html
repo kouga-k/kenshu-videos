@@ -268,8 +268,11 @@
   function loadVoices() {
     const sel = document.getElementById('voiceSelect');
     if (!sel) return;
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) return;
+    const allVoices = window.speechSynthesis.getVoices();
+    if (allVoices.length === 0) return;
+
+    // クラウド音声は再生失敗が多いためローカル音声のみに絞る
+    const voices = allVoices.filter(v => v.localService);
 
     // ページの現在の言語（Chrome翻訳後も反映）
     const pageLang = document.documentElement.lang?.split('-')[0] || 'ja';
@@ -296,7 +299,7 @@
       group.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.name;
-        opt.textContent = v.name + (v.localService ? '' : ' ☁');
+        opt.textContent = v.name;
         if (!firstOpt) firstOpt = opt;
         // 自然な音声を優先選択
         if (v.name.includes('Nanami') || v.name.includes('Kenji') || v.name.includes('Andika') || v.name.includes('An Online')) opt.selected = true;
