@@ -319,6 +319,7 @@
       alert('お使いのブラウザは読み上げ機能に対応していません。');
       return;
     }
+    console.log('speakText called:', type);
     stopSpeak();
 
     const el = document.getElementById('text-' + type);
@@ -371,9 +372,8 @@
     currentUtter = utter;
     currentBtn = btn;
     currentType = type;
-    // Chrome のバグ対策：少し待ってから再生
-    window.speechSynthesis.cancel();
-    setTimeout(() => window.speechSynthesis.speak(utter), 100);
+    console.log('Speaking with voice:', utter.voice?.name, 'lang:', utter.lang);
+    window.speechSynthesis.speak(utter);
   };
 
   window.stopSpeak = function() {
